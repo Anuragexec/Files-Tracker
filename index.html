@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -59,14 +58,16 @@ tr:hover td{background:var(--color-background-secondary,#f9f9f9)}
 .modal-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:10px}
 .ovr{color:#A32D2D}.watch{color:#854F0B}.ok{color:#27500A}
 </style>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
 
-<h2 style="position:absolute;left:-9999px">GIC Housing Finance Credit Ops Dashboard — 167 files, pipeline stages, PO/SO analytics</h2>
+<h2 style="position:absolute;left:-9999px">GIC Housing Finance Credit Ops Dashboard</h2>
 
 <div class="hdr">
   <div><h1>GIC Housing Finance · Hub Credit Ops</h1><p id="hdr-sub">Loading...</p></div>
-  <div style="font-size:11px;color:var(--color-text-secondary,#666)" id="last-upd"></div>
+  <div style="font-size:11px;color:var(--color-text-secondary,#666)" id="last-upd">Live Sync Active</div>
 </div>
 
 <div class="tabs">
@@ -106,6 +107,22 @@ tr:hover td{background:var(--color-background-secondary,#f9f9f9)}
 </div>
 
 <script>
+// ==========================================
+// 2. PASTE YOUR FIREBASE CONFIG KEYS HERE
+// ==========================================
+const firebaseConfig = {
+  apiKey: "PASTE_API_KEY_HERE",
+  authDomain: "PASTE_AUTH_DOMAIN_HERE",
+  projectId: "PASTE_PROJECT_ID_HERE"
+};
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
+// ==========================================
+
 const TODAY = new Date('2026-06-20');
 
 function parseDate(s){
@@ -138,6 +155,11 @@ function normalizeStage(s){
   if(s.includes('REJECT'))return'Rejected';
   return s.charAt(0)+s.slice(1).toLowerCase();
 }
+apiKey: "AIzaSyDkkNs1d6tLCdsAbMcgL_x8wBHmT5N9uis",
+
+  authDomain: "creditopsnorthhub.firebaseapp.com",
+
+  projectId: "creditopsnorthhub",
 
 function normalizeQuery(s){
   if(!s||s.trim()==='')return'Not Set';
@@ -159,6 +181,7 @@ function tatLabel(days){
   return'Critical';
 }
 
+// Your existing raw data backup (used once to fill the database)
 const RAW=[
 ["1","6/5/2026","DL0660020000016","Moumita Roy",4400000,"Dwarka, Delhi","SUD","Sanctioned","AMIT DAHIYA","N RAGOTHAMAN"],
 ["2","5/5/2026","DL0660020000006","Arvind Singh Jhoorawat",2500000,"Dwarka, Delhi","HO FS","Pending with HO","AMIT THAKUR","AMIT THAKUR"],
@@ -187,7 +210,7 @@ const RAW=[
 ["25","14/5/2026","UP0710020000009","HONEY SODHI",4500000,"Greater Noida","HO FS","Pending with HO","AMIT THAKUR","LOHIT TATA"],
 ["26","14/5/2026","DL0110020000007","Shivani",5100000,"Delhi","HO IPS","Sanctioned","AMIT DAHIYA","LOHIT TATA"],
 ["27","46361","DL0750020000015","Nripendra Narayan",2500000,"Pitam Pura","HO FS","Sanctioned","AMIT DAHIYA","AMIT THAKUR"],
-["28","8/5/2026","DL01100200000023","Saurabh Singh Phougat",2700000,"Delhi","SUD","Sanctioned","AMIT DAHIYA","DEEPAK KUMAR"],
+["28","8/5/2026","DL0110020000023","Saurabh Singh Phougat",2700000,"Delhi","SUD","Sanctioned","AMIT DAHIYA","DEEPAK KUMAR"],
 ["29","13/5/2026","DL0750020000005","Sachin Kumar",6050000,"Pitam Pura","SUD","Sanctioned","SITA CHAURASIYA","LOHIT TATA"],
 ["30","13/5/2026","DL0750020000010","DEVCHANDRA YADAV",2500000,"Pitam Pura","HO FS","Pending with HO","ADIL GARG","AMIT THAKUR"],
 ["31","15/5/2026","DL0980020000008","SURAJ KUMAR PATHAK",3600000,"Laxmi Nagar","Disbursed","Sanctioned","JAI AGGARWAL","LOHIT TATA"],
@@ -326,19 +349,11 @@ const RAW=[
 ["167","11/6/2026","UP0710020000012","CHANDRASHEKHAR MISHRA",2500000,"Greater Noida","HO IPS","Pending with HO","ANURAG","DEEPAK KUMAR"]
 ];
 
-let FILES = RAW.map(r=>({
-  sno:r[0], dateStr:r[1], fileNo:r[2], name:r[3],
-  amt:Number(r[4])||0, branch:r[5],
-  stage:normalizeStage(r[6]), query:normalizeQuery(r[7]),
-  po:r[8]||'', so:r[9]||'',
-  date:parseDate(r[1]),
-  days:null, tat:''
-}));
-FILES.forEach(f=>{f.days=daysSince(f.date);f.tat=tatLabel(f.days);});
+let FILES = [];
+let POS = [];
+let SOS = [];
+let BRANCHES = [];
 
-const POS=[...new Set(FILES.map(f=>f.po).filter(x=>x))].sort();
-const SOS=[...new Set(FILES.map(f=>f.so).filter(x=>x))].sort();
-const BRANCHES=[...new Set(FILES.map(f=>f.branch).filter(x=>x))].sort();
 const STAGES_LIST=['HO FS','HO IPS','SUD','Disbursed','Sanctioned','Branch 3rd Party','Lost Lead','Rejected','Unknown'];
 const QS_LIST=['Pending with Branch','Pending with HO','Sanctioned','Rejected','Clear','Not Set','PUT UP FOR SANCTION'];
 
@@ -346,6 +361,57 @@ const STAGE_COL={'HO FS':'t-hofs','HO IPS':'t-hoips','SUD':'t-sud','Disbursed':'
 const QS_COL={'Pending with Branch':'t-pb','Pending with HO':'t-ph','Sanctioned':'t-cl','Clear':'t-cl','Rejected':'t-rej'};
 
 let editIdx=null;
+let fileFiltersBuilt=false;
+
+// 3. LISTEN TO FIREBASE REAL-TIME
+db.collection("credit_files").onSnapshot((snapshot) => {
+    // 3a. Auto-import the raw data if the database is completely empty
+    if (snapshot.empty && RAW.length > 0) {
+        alert("First-time setup: Syncing your existing 167 files to the real-time database. This takes just a moment...");
+        let batch = db.batch();
+        RAW.forEach(r => {
+            let docRef = db.collection("credit_files").doc();
+            batch.set(docRef, {
+                sno: String(r[0]), dateStr: r[1], fileNo: r[2], name: r[3],
+                amt: Number(r[4])||0, branch: r[5],
+                stage: normalizeStage(r[6]), query: normalizeQuery(r[7]),
+                po: r[8]||'', so: r[9]||''
+            });
+        });
+        batch.commit().then(() => alert("Sync complete! Your dashboard is now real-time."));
+        return;
+    }
+
+    // 3b. Read live data from Firebase
+    FILES = [];
+    snapshot.forEach(doc => {
+        let f = doc.data();
+        f.id = doc.id; // Save the unique database ID for updates
+        f.date = parseDate(f.dateStr);
+        f.days = daysSince(f.date);
+        f.tat = tatLabel(f.days);
+        FILES.push(f);
+    });
+
+    // 3c. Re-build dynamic dropdown lists
+    POS=[...new Set(FILES.map(f=>f.po).filter(x=>x))].sort();
+    SOS=[...new Set(FILES.map(f=>f.so).filter(x=>x))].sort();
+    BRANCHES=[...new Set(FILES.map(f=>f.branch).filter(x=>x))].sort();
+
+    // 3d. Refresh whatever tab is currently open
+    fileFiltersBuilt = false;
+    const activeTab = document.querySelector('.tab.active');
+    if (activeTab) {
+        const tabText = activeTab.textContent.toLowerCase();
+        if(tabText.includes('dash')) renderDash();
+        else if(tabText.includes('pipeline')) renderPipeline();
+        else if(tabText.includes('po')) renderPO();
+        else if(tabText.includes('so')) renderSO();
+        else if(tabText.includes('branch')) renderBranch();
+        else if(tabText.includes('files')) { buildFileFilters(); renderFiles(); }
+    }
+});
+
 
 function sc(cls){return`<span class="tag ${cls||'t-unk'}">`}
 function stageTag(s){return`${sc(STAGE_COL[s]||'t-unk')}${s||'—'}</span>`}
@@ -385,19 +451,16 @@ function renderDash(){
     <div class="mc"><div class="lbl">Avg loan size</div><div class="val">₹${avgAmt}L</div><div class="sub">₹${Math.round(totalAmt/10000000)}Cr total book</div></div>
   </div>`;
 
-  // Stage distribution
   const stageCounts={};STAGES_LIST.forEach(s=>stageCounts[s]=FILES.filter(f=>f.stage===s).length);
   const maxS=Math.max(...Object.values(stageCounts),1);
   const sCols={'HO FS':'#378ADD','HO IPS':'#534AB7','SUD':'#EF9F27','Disbursed':'#1D9E75','Sanctioned':'#639922','Branch 3rd Party':'#888780','Lost Lead':'#D85A30','Rejected':'#E24B4A','Unknown':'#B4B2A9'};
   let stageBars=STAGES_LIST.filter(s=>stageCounts[s]>0).map(s=>bar(s,stageCounts[s],maxS,sCols[s])).join('');
 
-  // Query distribution
   const qCounts={};QS_LIST.forEach(q=>qCounts[q]=FILES.filter(f=>f.query===q).length);
   const maxQ=Math.max(...Object.values(qCounts),1);
   const qCols={'Pending with Branch':'#D85A30','Pending with HO':'#534AB7','Sanctioned':'#639922','Clear':'#1D9E75','Rejected':'#E24B4A','Not Set':'#B4B2A9','PUT UP FOR SANCTION':'#EF9F27'};
   let qBars=QS_LIST.filter(q=>qCounts[q]>0).map(q=>bar(q,qCounts[q],maxQ,qCols[q])).join('');
 
-  // TAT distribution
   const tatC={Critical:0,Overdue:0,Watch:0,'On Track':0};
   FILES.forEach(f=>{if(f.tat&&tatC[f.tat]!==undefined)tatC[f.tat]++;});
   const maxT=Math.max(...Object.values(tatC),1);
@@ -410,7 +473,6 @@ function renderDash(){
     <div class="card"><h3>TAT status</h3>${tatBars}<div style="font-size:10px;color:var(--color-text-secondary);margin-top:6px">Watch=8-15d · Overdue=16-30d · Critical>30d</div></div>
   </div>`;
 
-  // Pending action table
   const pend=FILES.filter(f=>f.query==='Pending with Branch'||f.query==='Pending with HO').sort((a,b)=>(b.days||0)-(a.days||0));
   html+=`<div class="card" style="margin-top:0"><h3>🔴 Action required (${pend.length} files) — sorted by days pending</h3>
   <table><thead><tr><th>File No</th><th>Customer</th><th>Branch</th><th>Loan</th><th>PO</th><th>Stage</th><th>Query pending with</th><th>Days at hub</th></tr></thead><tbody>
@@ -418,8 +480,7 @@ function renderDash(){
   </tbody></table></div>`;
 
   document.getElementById('s-dash').innerHTML=html;
-  document.getElementById('hdr-sub').textContent=`${total} files · ₹${Math.round(totalAmt/10000000)}Cr pipeline · As of 20-Jun-2026`;
-  document.getElementById('last-upd').textContent='Ref: June-26 Tracker';
+  document.getElementById('hdr-sub').textContent=`${total} files · ₹${Math.round(totalAmt/10000000)}Cr pipeline · Real-time`;
 }
 
 function renderPipeline(){
@@ -526,12 +587,12 @@ function renderBranch(){
   document.getElementById('s-branch').innerHTML=html;
 }
 
-let fileFiltersBuilt=false;
 function buildFileFilters(){
   if(fileFiltersBuilt)return;fileFiltersBuilt=true;
   ['ff-branch','ff-po','ff-so','ff-stage','ff-query'].forEach(id=>{
     const sel=document.getElementById(id);
     if(!sel)return;
+    sel.innerHTML = `<option value="">All ${id.split('-')[1]}s</option>`;
     const opts={
       'ff-branch':BRANCHES,'ff-po':POS,'ff-so':SOS,
       'ff-stage':STAGES_LIST,'ff-query':QS_LIST
@@ -588,24 +649,35 @@ function renderAdd(){
   <p id="add-msg" style="font-size:11px;margin-top:8px"></p>`;
 }
 
+// 4. ADD FILE TO FIREBASE
 function addFile(){
   const fn=document.getElementById('a-fileno').value.trim();
   const nm=document.getElementById('a-name').value.trim();
   const br=document.getElementById('a-branch').value;
   const po=document.getElementById('a-po').value;
-  if(!fn||!nm||!br||!po){document.getElementById('add-msg').textContent='Fill required fields (*).';document.getElementById('add-msg').style.color='#A32D2D';return;}
+  if(!fn||!nm||!br||!po){
+      document.getElementById('add-msg').textContent='Fill required fields (*).';
+      document.getElementById('add-msg').style.color='#A32D2D';
+      return;
+  }
   const dt=document.getElementById('a-date').value||'2026-06-20';
-  const d=new Date(dt);
-  const f={sno:String(FILES.length+1),dateStr:dt,fileNo:fn,name:nm,
-    amt:Number(document.getElementById('a-amt').value)||0,
-    branch:br,stage:document.getElementById('a-stage').value,
-    query:document.getElementById('a-query').value,
-    po:po,so:document.getElementById('a-so').value,date:d,
-    days:daysSince(d),tat:''};
-  f.tat=tatLabel(f.days);
-  FILES.push(f);
-  document.getElementById('add-msg').textContent=`✓ File ${fn} added.`;document.getElementById('add-msg').style.color='#27500A';
-  fileFiltersBuilt=false;
+  
+  db.collection("credit_files").add({
+    sno: String(FILES.length+1),
+    dateStr: dt,
+    fileNo: fn,
+    name: nm,
+    amt: Number(document.getElementById('a-amt').value)||0,
+    branch: br,
+    stage: document.getElementById('a-stage').value,
+    query: document.getElementById('a-query').value,
+    po: po,
+    so: document.getElementById('a-so').value
+  }).then(() => {
+    document.getElementById('add-msg').textContent=`✓ File ${fn} added successfully.`;
+    document.getElementById('add-msg').style.color='#27500A';
+    document.getElementById('s-add').querySelector('p').nextElementSibling.querySelectorAll('input,select').forEach(e=>e.value='');
+  });
 }
 
 function openModal(idx){
@@ -618,20 +690,26 @@ function openModal(idx){
   document.getElementById('modal').classList.add('open');
 }
 function closeModal(){document.getElementById('modal').classList.remove('open');editIdx=null;}
+
+// 5. UPDATE EXISTING FILE IN FIREBASE
 function saveModal(){
   if(editIdx===null)return;
-  FILES[editIdx].stage=normalizeStage(document.getElementById('m-stage').value);
-  FILES[editIdx].query=normalizeQuery(document.getElementById('m-query').value);
-  FILES[editIdx].po=document.getElementById('m-po').value;
+  
+  const docId = FILES[editIdx].id;
   const sv=document.getElementById('m-so').value;
-  FILES[editIdx].so=sv==='—'?'':sv;
-  closeModal();fileFiltersBuilt=false;
-  const activeTab=document.querySelector('.tab.active');
-  if(activeTab)activeTab.click();
+  
+  db.collection("credit_files").doc(docId).update({
+      stage: normalizeStage(document.getElementById('m-stage').value),
+      query: normalizeQuery(document.getElementById('m-query').value),
+      po: document.getElementById('m-po').value,
+      so: sv==='—'?'':sv
+  }).then(() => {
+      closeModal();
+  });
 }
+
 document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
-// Build files tab HTML
 document.getElementById('s-files').innerHTML=`
 <div class="frow">
   <input id="ff-search" placeholder="Search name / file no" style="width:150px" oninput="renderFiles()">
@@ -645,7 +723,6 @@ document.getElementById('s-files').innerHTML=`
 </div>
 <table><thead><tr><th>File No</th><th>Customer</th><th>Branch</th><th>Loan</th><th>PO</th><th>SO</th><th>Stage</th><th>Query Status</th><th>TAT</th><th></th></tr></thead><tbody id="files-tbody"></tbody></table>`;
 
-renderDash();
 </script>
 </body>
 </html>
