@@ -111,9 +111,9 @@ tr:hover td{background:var(--color-background-secondary,#f9f9f9)}
 // 2. PASTE YOUR FIREBASE CONFIG KEYS HERE
 // ==========================================
 const firebaseConfig = {
-  apiKey: "PASTE_API_KEY_HERE",
-  authDomain: "PASTE_AUTH_DOMAIN_HERE",
-  projectId: "PASTE_PROJECT_ID_HERE"
+  apiKey: "AIzaSyDkkNs1d6tLCdsAbMcgL_x8wBHmT5N9uis",
+  authDomain: "creditopsnorthhub.firebaseapp.com",
+  projectId: "creditopsnorthhub",
 };
 
 // Initialize Firebase
@@ -155,12 +155,6 @@ function normalizeStage(s){
   if(s.includes('REJECT'))return'Rejected';
   return s.charAt(0)+s.slice(1).toLowerCase();
 }
-apiKey: "AIzaSyDkkNs1d6tLCdsAbMcgL_x8wBHmT5N9uis",
-
-  authDomain: "creditopsnorthhub.firebaseapp.com",
-
-  projectId: "creditopsnorthhub",
-
 function normalizeQuery(s){
   if(!s||s.trim()==='')return'Not Set';
   s=s.trim().toUpperCase();
