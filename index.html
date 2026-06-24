@@ -734,7 +734,6 @@ label {
 <div id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
 
 <script>
-// THIS IS YOUR FULLY FUNCTIONAL FIREBASE CONNECTION
 const firebaseConfig = {
   apiKey: "AIzaSyDkkNs1d6tLCdsAbMcgL_x8wBHmT5N9uis",
   authDomain: "creditopsnorthhub.firebaseapp.com",
@@ -831,7 +830,6 @@ function showToast(msg, isError){
   setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-// FIREBASE LISTENER IS ACTIVE HERE
 db.collection("credit_files").onSnapshot((snapshot)=>{
   if(snapshot.empty&&RAW.length>0){
     let batch=db.batch();
@@ -1170,10 +1168,8 @@ function renderAdd(){
       </div>
       <div class="card">
         <div class="form-grid">
-          
           <div class="field-group"><label for="a-brnum">Branch number <span aria-label="required" style="color:var(--red)">*</span></label><input id="a-brnum" type="number" placeholder="e.g. 10" style="width:100%" autocomplete="off"></div>
           <div class="field-group"><label for="a-fileseq">File no. (last 2 digits) <span aria-label="required" style="color:var(--red)">*</span></label><input id="a-fileseq" type="text" maxlength="2" placeholder="e.g. 45" style="width:100%" autocomplete="off"></div>
-          
           <div class="field-group"><label for="a-name">Applicant name <span aria-label="required" style="color:var(--red)">*</span></label><input id="a-name" placeholder="Full name" style="width:100%" autocomplete="off"></div>
           <div class="field-group"><label for="a-amt">Loan amount (₹)</label><input id="a-amt" type="number" placeholder="e.g. 3500000" style="width:100%"></div>
           <div class="field-group"><label for="a-branch">Territory / branch <span aria-label="required" style="color:var(--red)">*</span></label><select id="a-branch" style="width:100%"><option value="">Select territory</option>${brOpts}</select></div>
@@ -1192,7 +1188,6 @@ function renderAdd(){
     </div>`;
 }
 
-// FIREBASE PUSH LOGIC
 function addFile(){
   const brNum=document.getElementById('a-brnum').value.trim();
   const fSeq=document.getElementById('a-fileseq').value.trim();
@@ -1236,8 +1231,6 @@ function closeModal(){
   document.getElementById('modal').classList.remove('open');
   editIdx=null;
 }
-
-// FIREBASE UPDATE LOGIC
 function saveModal(){
   if(editIdx===null)return;
   const docId=FILES[editIdx].id;
